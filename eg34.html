@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>example 34</title>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="jquery-ui-1.13.2/jquery-ui.min.css">
+        <link rel="stylesheet" href="fontawesome-6.5.1/css/all.css"> 
+        <script src="jquerytest/jquery-3.7.1.min.js"></script>
+        <script src="jquery-ui-1.13.2/jquery-ui.min.js"></script>
+        <style>
+            .header {
+                text-align: center;
+                width: 100%;
+                background-color: orange;
+                color: white;
+            }
+            .container {
+                display:  flex;
+            }
+            .leftPanel {
+                border-right: 1px solid black;
+                margin-left: 5px;
+                margin-right: 40px;
+                padding: 10px;
+            }
+            .rightPanel {
+                flex-grow: 1;
+                margin-right: 10px;
+                margin-left: 40px;
+            }
+            .ui-selected{
+                background-color: black;
+                color: white;
+            }
+            .list {
+                border: 1px solid black;
+                padding: 20px;
+                list-style: none;
+                font-size: 1.2rem;
+            }
+            .list li:hover {
+                cursor:  pointer;
+                padding: 10px;
+                background-color: red;
+                color: white;
+            }
+            table{
+                border:  1px solid black;
+                border-collapse: collapse;
+            }
+            table th{
+                border: 1px solid black;
+                border-collapse: collapse;
+                padding: 10px;
+                font-size: 1.2rem;
+            }
+            table tr td {
+                border: 1px solid black;
+                border-collapse: collapse;
+                padding: 10px;
+                font-size: 1.2rem;
+                cursor: pointer;
+            }
+            .details {
+                border: 1px solid black;
+                padding: 10px;
+            }
+            .depart:hover {
+                width: 100%;
+                background-color: red;
+                color: white;
+                text-align: center;
+            }
+        </style>
+        <script>
+            const getDepartment=()=>{
+                return new Promise((resolve,reject)=>{
+                    fetch("/getDepartments").then((response)=>{
+                        if(!response.ok) throw Error("OOPS error occurs try after some time.");
+                        return response.json();
+                    }).then((departments)=>{
+                        resolve(departments);
+                    }).catch((error)=>{
+                        reject(error.message);
+                    });
+                });
+            }
+            const getEmployeeByDepartmentId=(departmentId)=>{
+                return new Promise((resolve,reject)=>{
+                    fetch(`getDepartmentById?departmentId=${departmentId}`).then((response)=>{
+                        if(!response.ok) throw Error("OOPS error occurs try after some time.");
+                        return response.json();
+                    }).then((employees)=>{
+                        resolve(employees);
+                    }).catch((error)=>{
+                        reject(error.message);
+                    });
+                });
+            }
+            const loadEmployees=(departmentId)=>{
+                var employeeList=$("#employeesDetails").find("tbody");
+                var k=$("#employeeDetailId");
+                employeeList.html("");
+                k.html("");
+                employeeList.append($("<tr><td colspan='4' align='center'><i class='fas fa-spinner fa-spin'></i></td></tr>"));
+                getEmployeeByDepartmentId(departmentId).then((employees)=>{
+                    if(employees.length==0) {
+                        employeeList.html("");
+                        employeeList.append($("<b>No Employee Record</b>"));
+                        return;
+                    }
+                    k.html("");
+                    //alert(employees.length);
+                    employeeList.html("");
+                    employees.forEach((employee,index)=>{
+                        employeeList.append($(`<tr id='${employee.id}'><td>${index+1}</td><td>${employee.id}</td><td>${employee.firstName}</td><td>${employee.lastName}</td></tr>`));
+                    });
+                },(error)=>{
+                    alert(error.message);
+                });
+            }
+            const loadDepartment=()=>{
+                getDepartment().then((departments)=>{
+                    var departmentList=$("#departments");
+                    departments.forEach((department)=>{
+                        departmentList.append($(`<li id='${department.id}'>${department.name}</li>`));
+                    });
+                    departmentList.selectable({
+                    selected : function(ev,ui) {
+                        $(ui.selected).addClass("ui-selected").siblings().removeClass("ui-selected");
+                            //alert(ui.selected.id);
+                            loadEmployees(ui.selected.id);
+                            console.log(ui.selected.id);
+                        }
+                    });
+                },(error)=>{
+                    alert(error);
+                });
+            }
+
+
+            const getEmployeeById=(employeeId)=>{
+                return new Promise((resolve,reject)=>{
+                    fetch(`getEmployeeDetails?employeeId=${employeeId}`).then((response)=>{
+                        if(!response.ok) throw Error("OOps try after some time");
+                        return response.json(); 
+                    }).then((employeeDetail)=>{
+                        resolve(employeeDetail);
+                    }).catch((error)=>{
+                        reject(error);
+                    });
+                });
+            }
+            
+            const loadEmployeeDetails=(employeeId)=>{
+                var k=$("#employeeDetailId");
+                k.html("");
+                k.append($("<i class='fas fa-spinner fa-spin'></i>"));
+                getEmployeeById(employeeId).then((employeeDetail)=>{
+                    k.html("");
+                    k.append('<h3>Employee Details.</h3><br>')
+                    k.append(`<b>Manager Id :${employeeDetail.managerId}</b><br>`);
+                    k.append(`<b>Salary :${employeeDetail.salary}</b><br>`);
+                    k.append(`<b>Email :${employeeDetail.email}</b>`);
+                },(error)=>{
+                    alert(error.message);
+                });
+            }
+
+            $(()=>{
+                $("#employeesDetails >tbody").selectable({
+                    selected : function(ev,ui) {
+                        $(ui.selected).addClass("ui-selected").siblings().removeClass("ui-selected");
+                        //alert(ui.selected.id);
+                        loadEmployeeDetails(ui.selected.id);
+                    }
+                });
+                loadDepartment();
+            });
+        </script>
+    </head>
+    <body>
+        <h2 class="header">HR Application</h2>
+        <div class="container">
+            <div class="leftPanel">
+                <div class="depart">D E P A R T M E N T S</div>
+                <ul class="list" id="departments"></ul>
+            </div>
+            <div class="rightPanel">
+                <div class="employee">EMPLOYEES</div>
+                <table id="employeesDetails">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Employee Id</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <br>
+                <br>
+                <br>
+                
+                <div id="employeeDetailId"></div>
+                
+            </div>
+        </div>
+    </body>
+</html>
